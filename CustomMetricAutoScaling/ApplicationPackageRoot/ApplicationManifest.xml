@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ApplicationManifest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ApplicationTypeName="CustomMetricAutoScalingType" ApplicationTypeVersion="1.1.11" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+  <Parameters>
+    <Parameter Name="JobService_MinReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="JobService_PartitionCount" DefaultValue="1" />
+    <Parameter Name="JobService_TargetReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="JobService_PlacementConstraint" DefaultValue="" />
+    <Parameter Name="JobService_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
+    <Parameter Name="JobRunner_InstanceCount" DefaultValue="-1" />
+    <Parameter Name="JobRunner_PartitionCount" DefaultValue="1" />
+    <Parameter Name="JobRunner_PlacementConstraint" DefaultValue="Node" />
+    <Parameter Name="JobGateway_ASPNETCORE_ENVIRONMENT" DefaultValue="" />
+    <Parameter Name="JobGateway_InstanceCount" DefaultValue="-1" />
+    <Parameter Name="JobGateway_PlacementConstraint" DefaultValue="" />
+    <Parameter Name="ApplicationInsightsConnectionString" DefaultValue="" />
+    <Parameter Name="InstrumentationKey" DefaultValue="" />
+    <Parameter Name="LiveTelemetryApiKey" DefaultValue="" />
+    <Parameter Name="ServiceBusConnectionString" DefaultValue="" />
+    <Parameter Name="JobQueueName" DefaultValue="" />
+    <Parameter Name="CompletedJobQueueName" DefaultValue="" />
+    <Parameter Name="MetricNewJobHeight" DefaultValue="JobHeight" />
+    <Parameter Name="MetricCompletedJobHeight" DefaultValue="CompletedHeight" />
+    <Parameter Name="JobRunnerNodeTypeCoreUsePerInstance" DefaultValue="0.25" />
+    <Parameter Name="JobRunnerNodeTypeCoreCount" DefaultValue="2" />
+  </Parameters>
+  <!-- Import the ServiceManifest from the ServicePackage. The ServiceManifestName and ServiceManifestVersion 
+       should match the Name and Version attributes of the ServiceManifest element defined in the 
+       ServiceManifest.xml file. -->
+  <ServiceManifestImport>
+    <ServiceManifestRef ServiceManifestName="JobServicePkg" ServiceManifestVersion="1.0.0" />
+    <ConfigOverrides>
+      <ConfigOverride Name="Config">
+        <Settings>
+          <Section Name="JobServiceSettings">
+            <Parameter Name="ApplicationInsightsConnectionString" Value="[ApplicationInsightsConnectionString]" />
+            <Parameter Name="InstrumentationKey" Value="[InstrumentationKey]" />
+            <Parameter Name="LiveTelemetryApiKey" Value="[LiveTelemetryApiKey]" />
+            <Parameter Name="JobQueueName" Value="[JobQueueName]" />
+            <Parameter Name="CompletedJobQueueName" Value="[CompletedJobQueueName]" />
+            <Parameter Name="ServiceBusConnectionString" Value="[ServiceBusConnectionString]" />
+          </Section>
+        </Settings>
+      </ConfigOverride>
+    </ConfigOverrides>
+    <EnvironmentOverrides CodePackageRef="code">
+      <EnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="[JobService_ASPNETCORE_ENVIRONMENT]" />
+    </EnvironmentOverrides>
+  </ServiceManifestImport>
+  <ServiceManifestImport>
+    <ServiceManifestRef ServiceManifestName="JobRunnerPkg" ServiceManifestVersion="1.1.8" />
+    <ConfigOverrides>
+      <ConfigOverride Name="Config">
+        <Settings>
+          <Section Name="JobRunnerSettings">
+            <Parameter Name="InstrumentationKey" Value="[InstrumentationKey]" />
+            <Parameter Name="LiveTelemetryApiKey" Value="[LiveTelemetryApiKey]" />
+            <Parameter Name="JobRunnerSendConnectionString" Value="[ServiceBusConnectionString]" />
+            <Parameter Name="JobRunnerListenConnectionString" Value="[ServiceBusConnectionString]" />
+            <Parameter Name="LoadManagerConnectionString" Value="[ServiceBusConnectionString]" />
+            <Parameter Name="JobQueueName" Value="[JobQueueName]" />
+            <Parameter Name="CompletedJobQueueName" Value="[CompletedJobQueueName]" />
+            <Parameter Name="MetricNewJobHeight" Value="[MetricNewJobHeight]" />
+            <Parameter Name="JobRunnerNodeTypeCoreUsePerInstance" Value="[JobRunnerNodeTypeCoreUsePerInstance]" />
+            <Parameter Name="JobRunnerNodeTypeCoreCount" Value="[JobRunnerNodeTypeCoreCount]" />
+          </Section>
+        </Settings>
+      </ConfigOverride>
+    </ConfigOverrides>
+    <Policies>
+      <ServicePackageResourceGovernancePolicy CpuCores="[JobRunnerNodeTypeCoreUsePerInstance]" CpuCoresLimit="[JobRunnerNodeTypeCoreCount]" />
+      <ResourceGovernancePolicy CodePackageRef="Code" CpuShares="1024" />
+    </Policies>
+  </ServiceManifestImport>
+  <ServiceManifestImport>
+    <ServiceManifestRef ServiceManifestName="JobGatewayPkg" ServiceManifestVersion="1.1.11" />
+    <ConfigOverrides>
+      <ConfigOverride Name="Config">
+        <Settings>
+          <Section Name="GatewaySettings">
+            <Parameter Name="ApplicationInsightsConnectionString" Value="[ApplicationInsightsConnectionString]" />
+            <Parameter Name="InstrumentationKey" Value="[InstrumentationKey]" />
+            <Parameter Name="LiveTelemetryApiKey" Value="[LiveTelemetryApiKey]" />
+          </Section>
+        </Settings>
+      </ConfigOverride>
+    </ConfigOverrides>
+    <EnvironmentOverrides CodePackageRef="code">
+      <EnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="[JobGateway_ASPNETCORE_ENVIRONMENT]" />
+    </EnvironmentOverrides>
+  </ServiceManifestImport>
+  <DefaultServices>
+    <Service Name="JobService" ServicePackageActivationMode="ExclusiveProcess">
+      <StatefulService ServiceTypeName="JobServiceType" TargetReplicaSetSize="[JobService_TargetReplicaSetSize]" MinReplicaSetSize="[JobService_MinReplicaSetSize]">
+        <UniformInt64Partition PartitionCount="[JobService_PartitionCount]" LowKey="-9223372036854775808" HighKey="9223372036854775807" />
+        <PlacementConstraints>[JobService_PlacementConstraint]</PlacementConstraints>
+      </StatefulService>
+    </Service>
+    <Service Name="JobRunner">
+      <StatelessService ServiceTypeName="JobRunnerType" InstanceCount="[JobRunner_InstanceCount]">
+        <NamedPartition>
+          <Partition Name="0" />
+        </NamedPartition>
+        <LoadMetrics>
+          <LoadMetric Name="servicefabric:/_CpuCores" Weight="High" />
+          <LoadMetric Name="JobHeight" Weight="High" />
+        </LoadMetrics>
+        <PlacementConstraints>[JobRunner_PlacementConstraint]</PlacementConstraints>
+        <ServiceScalingPolicies>
+          <ScalingPolicy>
+            <AverageServiceLoadScalingTrigger MetricName="JobHeight" LowerLoadThreshold="15" UpperLoadThreshold="30" ScaleIntervalInSeconds="15" UseOnlyPrimaryLoad="false" />
+            <AddRemoveIncrementalNamedPartitionScalingMechanism MinPartitionCount="1" MaxPartitionCount="12" ScaleIncrement="1" />
+          </ScalingPolicy>
+        </ServiceScalingPolicies>
+      </StatelessService>
+    </Service>
+    <Service Name="JobGateway" ServicePackageActivationMode="ExclusiveProcess">
+      <StatelessService ServiceTypeName="JobGatewayType" InstanceCount="[JobGateway_InstanceCount]">
+        <SingletonPartition />
+        <PlacementConstraints>[JobGateway_PlacementConstraint]</PlacementConstraints>
+      </StatelessService>
+    </Service>
+  </DefaultServices>
+</ApplicationManifest>

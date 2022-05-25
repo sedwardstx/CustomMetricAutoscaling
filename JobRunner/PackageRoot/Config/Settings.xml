@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.microsoft.com/2011/01/fabric">
+  <!-- Add your custom configuration sections and parameters here -->
+	<Section Name="JobRunnerSettings">
+		<Parameter Name="InstrumentationKey" Value="" MustOverride="true" />
+		<Parameter Name="LiveTelemetryApiKey" Value="" MustOverride="true" />
+		<Parameter Name="JobRunnerSendConnectionString" Value="" MustOverride="true" />
+		<Parameter Name="JobRunnerListenConnectionString" Value="" MustOverride="true" />
+		<Parameter Name="LoadManagerConnectionString" Value="" MustOverride="true" />
+		<Parameter Name="JobQueueName" Value="" MustOverride="true" />
+		<Parameter Name="CompletedJobQueueName" Value="" MustOverride="true" />
+		<Parameter Name="MetricNewJobHeight" Value="" MustOverride="true" />
+        <Parameter Name="JobRunnerNodeTypeCoreUsePerInstance" Value="" MustOverride="true" />
+        <Parameter Name="JobRunnerNodeTypeCoreCount" Value="" MustOverride="true" />
+	</Section>
+</Settings>
